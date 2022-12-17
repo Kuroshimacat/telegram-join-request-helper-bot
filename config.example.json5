@@ -1,0 +1,11 @@
+{
+	"botToken": "1234567890:abcdef",
+	"activeGroupMap": [
+		{
+			"publicGroup": -123456,
+			"privateGroup": -123456
+		}
+	],
+	"logLevel": "debug",
+	"logFile": "app.log"
+}

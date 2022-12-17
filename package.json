@@ -1,0 +1,44 @@
+{
+	"name": "@sunafterrainwm/telegram-join-request-helper-bot",
+	"version": "0.0.1",
+	"description": "A bot help telegram private group with join request",
+	"main": "src/index.mjs",
+	"scripts": {
+		"start": "node src/app.mjs",
+		"ts-start": "ts-node-esm src/app.mts",
+		"test": "echo \"Error: no test specified\" && exit 1",
+		"lint": "eslint src --ext .mts",
+		"build": "tsc"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/sunafterrainwm/telegram-join-request-helper-bot.git"
+	},
+	"author": "sunafterrainwm <sunafterrainwm@gmail.com>",
+	"license": "MIT",
+	"bugs": {
+		"url": "https://github.com/sunafterrainwm/telegram-join-request-helper-bot/issues"
+	},
+	"homepage": "https://github.com/sunafterrainwm/telegram-join-request-helper-bot#readme",
+	"packageManager": "pnpm@7.18.2",
+	"dependencies": {
+		"grammy": "^1.12.0",
+		"json5": "^2.2.2",
+		"log4js": "^6.7.1",
+		"string-format": "^2.0.0"
+	},
+	"devDependencies": {
+		"@grammyjs/types": "^2.10.3",
+		"@types/node": "^18.11.15",
+		"@types/string-format": "^2.0.0",
+		"@typescript-eslint/eslint-plugin": "~5.42.1",
+		"@typescript-eslint/parser": "~5.42.1",
+		"eslint": "~8.29.0",
+		"eslint-config-standard-with-typescript": "~24.0.0",
+		"eslint-import-resolver-typescript": "~3.5.2",
+		"eslint-plugin-import": "~2.26.0",
+		"eslint-plugin-n": "~15.6.0",
+		"eslint-plugin-promise": "~6.1.1",
+		"typescript": "~4.8.3"
+	}
+}
