@@ -37,7 +37,7 @@ const getFormatArgs = {
 			timestamp: new Date().toISOString()
 		};
 	},
-	user(user: TT.User, prefix = 'u'): Record<string, string> {
+	user(user: TT.User, prefix = 'user'): Record<string, string> {
 		const fullname = escapeHtml(user.first_name + ' ' + (user.last_name ?? '')).trim();
 		return {
 			...transformTGData(user, prefix, [
@@ -51,7 +51,7 @@ const getFormatArgs = {
 			u_mention: `<a href="tg://user?id=${user.id}">${fullname}</a>`
 		};
 	},
-	chat(chat: TT.Chat, prefix = 'c'): Record<string, string> {
+	chat(chat: TT.Chat, prefix = 'group'): Record<string, string> {
 		if (chat.type === 'private') {
 			return this.user(Object.assign({}, chat, {
 				is_bot: false
@@ -92,17 +92,17 @@ bot.on('message:new_chat_members', async function (ctx) {
 	const thread = createLogThread('newChatMembers');
 	if (
 		ctx.message.new_chat_members.length === 1 &&
-		ctx.message.from.id === ctx.message.new_chat_members[0].id
+		ctx.from.id === ctx.message.new_chat_members[0].id
 	) {
 		thread.log(
-			'debug',
+			'info',
 			'%d joined group %d.',
 			ctx.from.id,
 			ctx.chat.id
 		);
 	} else {
 		thread.log(
-			'debug',
+			'info',
 			'%d invited %s to group %d, ignored.',
 			ctx.from.id,
 			ctx.message.new_chat_members.map(u => u.id).join(', '),
@@ -116,8 +116,9 @@ bot.on('message:new_chat_members', async function (ctx) {
 		if (group.welcomeOnJoinPublicGroup) {
 			let inviteLink = 'privateGroup' in group ? await getGroupInviteLink(group.privateGroup) : null;
 			inviteLink = inviteLink ? 'https://t.me/+' + inviteLink : 'null';
+			const privateGroup = 'privateGroup' in group ? await bot.api.getChat(group.privateGroup) : null;
 			thread.log(
-				'debug',
+				'info',
 				'[public] Send welcome message to chat %d user %d (inviteLink: %s).',
 				ctx.from.id,
 				ctx.chat.id,
@@ -130,6 +131,7 @@ bot.on('message:new_chat_members', async function (ctx) {
 					{
 						...getFormatArgs.default(),
 						...getFormatArgs.chat(ctx.chat),
+						...(privateGroup ? getFormatArgs.chat(privateGroup, 'private_group') : {}),
 						...getFormatArgs.user(ctx.from),
 						invite_link: inviteLink
 					}
@@ -144,7 +146,7 @@ bot.on('message:new_chat_members', async function (ctx) {
 		const group = config.privateGroupToActiveGroupMap.get(ctx.chat.id)!;
 		if (group.welcomeOnJoinPrivateGroup) {
 			thread.log(
-				'debug',
+				'info',
 				'[private] Send welcome message to chat %d user %d.',
 				ctx.from.id,
 				ctx.chat.id
@@ -174,67 +176,14 @@ bot.on('chat_join_request', async function (ctx, next) {
 }, async function (ctx) {
 	const thread = createLogThread('chatJoinRequest');
 	thread.log(
-		'debug',
+		'info',
 		'%d request to join group %d.',
 		ctx.from.id,
 		ctx.chat.id
 	);
 	// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 	const group = config.privateGroupToActiveGroupMap.get(ctx.chat.id)!;
-	if (group.notifyJoinRequest) {
-		if (group.notifyJoinRequestWithApproveButton) {
-			thread.log(
-				'debug',
-				'Send notify message with approve button.'
-			);
-			await bot.api.sendMessage(
-				ctx.chat.id,
-				format(
-					group.notifyJoinRequestMessage,
-					{
-						...getFormatArgs.default(),
-						...getFormatArgs.user(ctx.from)
-					}
-				),
-				{
-					parse_mode: 'HTML',
-					reply_markup: {
-						inline_keyboard: [
-							[
-								{
-									text: group.notifyJoinRequestApproveButtonText,
-									callback_data: `jr:approve:${ctx.chat.id}:${ctx.chat.id}`
-								},
-								{
-									text: group.notifyJoinRequestDeclineButtonText,
-									callback_data: `jr:decline:${ctx.chat.id}:${ctx.chat.id}`
-								}
-							]
-						]
-					}
-				}
-			);
-		} else {
-			thread.log(
-				'debug',
-				'Send notify message without approve button.'
-			);
-			await bot.api.sendMessage(
-				ctx.chat.id,
-				format(
-					group.notifyJoinRequestMessage,
-					{
-						...getFormatArgs.default(),
-						...getFormatArgs.user(ctx.from)
-					}
-				),
-				{
-					parse_mode: 'HTML'
-				}
-			);
-		}
-	}
-
+	// 先檢查是否能被自動通過
 	if (
 		'publicGroup' in group && group.publicGroup &&
 		group.autoAcceptJoinRequestWhenPublicGroupMember
@@ -263,7 +212,63 @@ bot.on('chat_join_request', async function (ctx, next) {
 				ctx.from.id,
 				ctx.chat.id
 			);
-			await ctx.approveChatJoinRequest(ctx.from.id);
+			// 已經被自動通過就不需要再發送通知了
+			return ctx.approveChatJoinRequest(ctx.from.id);
+		}
+	}
+
+	// 再檢查是否發送通知
+	if (group.notifyJoinRequest) {
+		if (group.notifyJoinRequestWithApproveButton) {
+			thread.log(
+				'info',
+				'Send notify message with approve button.'
+			);
+			await bot.api.sendMessage(
+				ctx.chat.id,
+				format(
+					group.notifyJoinRequestMessage,
+					{
+						...getFormatArgs.default(),
+						...getFormatArgs.user(ctx.from)
+					}
+				),
+				{
+					parse_mode: 'HTML',
+					reply_markup: {
+						inline_keyboard: [
+							[
+								{
+									text: '允許',
+									callback_data: `jr:approve:${ctx.chat.id}:${ctx.chat.id}`
+								},
+								{
+									text: '拒絕',
+									callback_data: `jr:decline:${ctx.chat.id}:${ctx.chat.id}`
+								}
+							]
+						]
+					}
+				}
+			);
+		} else {
+			thread.log(
+				'info',
+				'Send notify message without approve button.'
+			);
+			await bot.api.sendMessage(
+				ctx.chat.id,
+				format(
+					group.notifyJoinRequestMessage,
+					{
+						...getFormatArgs.default(),
+						...getFormatArgs.user(ctx.from)
+					}
+				),
+				{
+					parse_mode: 'HTML'
+				}
+			);
 		}
 	}
 });
@@ -294,7 +299,7 @@ const cbCallbacks: {
 				return ctx.answerCallbackQuery('Unknown query reach.');
 			}
 			thread.log(
-				'debug',
+				'info',
 				'Get query %s (type: %s, group: %s, user: %s) from user %s',
 				ctx.callbackQuery.data,
 				type,
@@ -368,10 +373,8 @@ bot.on('callback_query', function (ctx) {
 	}
 	return ctx.answerCallbackQuery('Unknown query reach.');
 });
-
 bot
 	.chatType(['group', 'supergroup'])
-	.on('message:text')
 	.command('revokeCurrentLink', async function (ctx, next) {
 		if (config.privateGroupToActiveGroupMap.has(ctx.chat.id)) {
 			await next();
@@ -379,13 +382,13 @@ bot
 	}, async function (ctx) {
 		const thread = createLogThread('command:revokeCurrentLink');
 		thread.log(
-			'debug',
+			'info',
 			'Get command %s from user %d chat %d',
 			ctx.message.text,
 			ctx.from.id,
 			ctx.chat.id
 		);
-		const admin = await bot.api.getChatMember(ctx.message.chat.id, ctx.message.from.id);
+		const admin = await bot.api.getChatMember(ctx.chat.id, ctx.from.id);
 		thread.log(
 			'trace',
 			'Get member:',
@@ -402,7 +405,7 @@ bot
 				ctx.from.id,
 				ctx.chat.id
 			);
-			const [revokeResult, link] = await invalidInviteLink(ctx.message.chat.id, true);
+			const [revokeResult, link] = await invalidInviteLink(ctx.chat.id, true);
 			thread.log(
 				'debug',
 				'revoke result: ',
@@ -418,6 +421,200 @@ bot
 		}
 		return ctx.reply('命令僅限管理員使用。');
 	});
+
+if (config.enableSuExitMode) {
+	bot
+		.chatType(['group', 'supergroup'])
+		.command('su', async function (ctx, next) {
+			if (config.privateGroupToActiveGroupMap.has(ctx.chat.id)) {
+				await next();
+			}
+		}, async function (ctx) {
+			const thread = createLogThread('command:su');
+			thread.log(
+				'info',
+				'Get command %s from user %d chat %d',
+				ctx.message.text,
+				ctx.from.id,
+				ctx.chat.id
+			);
+			// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+			const group = config.privateGroupToActiveGroupMap.get(ctx.chat.id)!;
+			if (!('publicGroup' in group) || !group.publicGroupAdminBecomePrivateGroupAdminEnable) {
+				return ctx.reply('群組未啟用相關功能。');
+			}
+			const privateMember = await bot.api.getChatMember(ctx.chat.id, ctx.from.id);
+			thread.log(
+				'trace',
+				'Get private group member:',
+				privateMember
+			);
+			if (
+				privateMember.status === 'creator' ||
+				privateMember.status === 'administrator'
+			) {
+				return ctx.reply('我無法讓您成為管理員。');
+			}
+			const botStat = await bot.api.getChatMember(ctx.chat.id, ctx.me.id);
+			thread.log(
+				'trace',
+				'Get bot:',
+				botStat
+			);
+			if (botStat.status !== 'administrator' || !botStat.can_promote_members) {
+				return ctx.reply('我無法於此處讓您成為管理員。');
+			}
+
+			const publicMember = await bot.api.getChatMember(
+				group.publicGroup,
+				ctx.from.id
+			);
+			thread.log(
+				'trace',
+				'Get public group:',
+				publicMember
+			);
+			if (
+				publicMember.status !== 'creator' &&
+				publicMember.status !== 'administrator'
+			) {
+				return ctx.reply('您沒有進行此操作的權限。');
+			}
+
+			const permKeys = [
+				'can_delete_messages',
+				'can_invite_users',
+				'can_pin_messages',
+				'can_restrict_members',
+				'can_manage_video_chats'
+			] as const;
+			const perms: Partial<Record<typeof permKeys[number] | 'can_manage_chat', true>> = {
+				can_manage_chat: true
+			};
+			for (const permKey of permKeys) {
+				if (botStat[permKey]) {
+					perms[permKey] = true;
+				}
+			}
+
+			try {
+				await bot.api.promoteChatMember(
+					ctx.chat.id,
+					ctx.from.id,
+					perms
+				);
+				thread.log(
+					'info',
+					'Promote user %d in %d success.',
+					ctx.from.id,
+					ctx.chat.id
+				);
+
+				if (group.publicGroupAdminBecomePrivateGroupAdminCustomTitle) {
+					try {
+						await bot.api.setChatAdministratorCustomTitle(
+							ctx.chat.id,
+							ctx.from.id,
+							group.publicGroupAdminBecomePrivateGroupAdminCustomTitle
+						);
+						thread.log(
+							'info',
+							'Set user %d in %d custom title: %s.',
+							ctx.from.id,
+							ctx.chat.id,
+							group.publicGroupAdminBecomePrivateGroupAdminCustomTitle
+						);
+					} catch (error) {
+						thread.log(
+							'error',
+							'Fail to set user %d in %d: %s',
+							error
+						);
+					}
+				}
+				return ctx.reply('您已成為管理員，請按 /exit 退出。', {
+					reply_to_message_id: ctx.message.message_id,
+					allow_sending_without_reply: true
+				});
+			} catch (error) {
+				thread.log(
+					'error',
+					'Fail to promote user %d in %d: %s',
+					error
+				);
+				return ctx.reply('抱歉，由於技術故障，未能完成授權。', {
+					reply_to_message_id: ctx.message.message_id,
+					allow_sending_without_reply: true
+				});
+			}
+		});
+
+	bot
+		.chatType(['group', 'supergroup'])
+		.command('exit', async function (ctx, next) {
+			if (config.privateGroupToActiveGroupMap.has(ctx.chat.id)) {
+				await next();
+			}
+		}, async function (ctx) {
+			const thread = createLogThread('command:exit');
+			thread.log(
+				'info',
+				'Get command %s from user %d chat %d',
+				ctx.message.text,
+				ctx.from.id,
+				ctx.chat.id
+			);
+			// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+			const group = config.privateGroupToActiveGroupMap.get(ctx.chat.id)!;
+			if (!('publicGroup' in group) || !group.publicGroupAdminBecomePrivateGroupAdminEnable) {
+				return ctx.reply('群組未啟用相關功能。');
+			}
+			const member = await bot.api.getChatMember(ctx.chat.id, ctx.from.id);
+			thread.log(
+				'trace',
+				'Get member:',
+				member
+			);
+			if (
+				member.status === 'creator' ||
+				(member.status === 'administrator' && member.can_be_edited)
+			) {
+				return ctx.reply('那是不可能的。');
+			} else if (member.status !== 'administrator') {
+				return ctx.reply('您又不是管理員。');
+			}
+			try {
+				await bot.api.promoteChatMember(
+					ctx.chat.id,
+					ctx.from.id,
+					{
+						can_manage_chat: false
+					}
+				);
+				thread.log(
+					'info',
+					'Demote user %d in %d success.',
+					ctx.from.id,
+					ctx.chat.id
+				);
+
+				return ctx.reply('已成功更改您的權限。', {
+					reply_to_message_id: ctx.message.message_id,
+					allow_sending_without_reply: true
+				});
+			} catch (error) {
+				thread.log(
+					'error',
+					'Fail to demote user %d in %d: %s',
+					error
+				);
+				return ctx.reply('抱歉，更改您的權限失敗了。', {
+					reply_to_message_id: ctx.message.message_id,
+					allow_sending_without_reply: true
+				});
+			}
+		});
+}
 
 bot.catch((error) => logger.error(error));
 

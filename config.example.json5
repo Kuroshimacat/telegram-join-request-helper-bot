@@ -14,7 +14,7 @@
 	// 3. 變數組：
 	//   - 通用
 	//   -* timestamp: 當前時間戳（請參考 Date.prototype.toISOString）
-	//   - 用戶相關（未提及則所有變數的前綴都是 `u_`）
+	//   - 用戶相關（未提及則所有變數的前綴都是 `user_`）
 	//   -* id: 新用戶的 id
 	//   -* first_name: 新用戶的 first name
 	//   -* last_name: 新用戶的 last name，若無則為 'null'
@@ -22,7 +22,7 @@
 	//   -* fullname: 新用戶的姓名（first name + last name）
 	//   -* username: 新用戶的 usename，若無則為 'null'
 	//   -* mention: 提及新用戶
-	//   - 群組相關（未提及則所有變數的前綴都是 `c_`）
+	//   - 群組相關（未提及則所有變數的前綴都是 `group_`）
 	//   -* id: 群組的 id
 	//   -* title: 群組的標題
 	//   -* username: 群組的 usename，若無則為 'null'
@@ -34,8 +34,9 @@
 	// - 通用變數組
 	// - 入群用戶（參見用戶相關數組）
 	// - 當前群組（參見群組相關變數組）
+	// - 私有群組（參見群組相關變數組，私有群組的前綴是 `private_group_`）
 	// - invite_link: 進入私群的邀請連結（如果存在的話）
-	welcomeOnJoinPublicGroupMessage: '歡迎 {u_mention} 在 {timestamp} 加入 {c_title}！您可以透過連結 {invite_link} 申請加入我們的內部討論群。',
+	welcomeOnJoinPublicGroupMessage: '歡迎 {user_mention} [<code>{user_id}</code>] 在 {timestamp} 加入 {group_title}！您可以透過連結 {invite_link} 申請加入我們的內部討論群 {private_group_title}。',
 
 	// 新用戶進入私有群組時是否發送歡迎訊息
 	welcomeOnJoinPrivateGroup: true,
@@ -44,7 +45,7 @@
 	// - 通用變數組
 	// - 入群用戶（參見用戶相關數組）
 	// - 當前群組（參見群組相關變數組）
-	welcomeOnJoinPrivateGroupMessage: '歡迎 {u_mention} 在 {timestamp} 加入 {c_title}！',
+	welcomeOnJoinPrivateGroupMessage: '歡迎 {user_mention} [<code>{user_id}</code>] 在 {timestamp} 加入 {group_title}！',
 
 	// 新用戶申請進入私有群組時是否需要通知
 	notifyJoinRequest: true,
@@ -52,7 +53,7 @@
 	// 可用變數組
 	// - 通用變數組
 	// - 申請用戶（參見用戶相關數組）
-	notifyJoinRequestMessage: '{u_mention} 在 {timestamp} 申請加入本群。',
+	notifyJoinRequestMessage: '{user_mention} 在 {timestamp} 申請加入本群。',
 	// 新用戶申請進入私有群組時發送的通知訊息是否應該包含核准連結？
 	notifyJoinRequestWithApproveButton: true,
 	
@@ -86,8 +87,8 @@
 
 	// #region log config
 	// 紀錄等級，有 debug、info、warn、error 幾種等級，推薦使用 info
-	logLevel: "info",
+	logLevel: 'info',
 	// 紀錄檔檔名，如留空則只向螢幕輸出
-	logFile: 'app.log'
+	logFile: 'app.log',
 	// #endregion log config
 }

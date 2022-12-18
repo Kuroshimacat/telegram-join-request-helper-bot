@@ -6,9 +6,7 @@ import json5 from 'json5';
 
 import * as logger from './logger.mjs';
 
-export interface Config extends Config.Log {
-	botToken: string;
-	activeGroupMap: Config.ActiveGroup[];
+export interface Config extends Config.Base<Config.ActiveGroup>, Config.Log {
 	publicGroupToActiveGroupMap:
 	Map<number, Config.GroupConfig.PublicGroupWithIdConfig | Config.GroupConfig.CompleteGroupWithIdConfig>;
 	privateGroupToActiveGroupMap:
@@ -16,6 +14,16 @@ export interface Config extends Config.Log {
 }
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export declare namespace Config {
+	interface Base<ActiveGroup> {
+		botToken: string;
+		activeGroupMap: ActiveGroup[];
+		enableSuExitMode?: boolean;
+	}
+	interface Log {
+		logLevel: logger.LogLevel;
+		logFile?: string;
+	}
+
 	// eslint-disable-next-line @typescript-eslint/no-namespace
 	namespace GroupConfig {
 		interface PublicGroupConfig {
@@ -29,12 +37,12 @@ export declare namespace Config {
 			notifyJoinRequest: boolean;
 			notifyJoinRequestMessage: string;
 			notifyJoinRequestWithApproveButton: boolean;
-			notifyJoinRequestApproveButtonText: string;
-			notifyJoinRequestDeclineButtonText: string;
 			inviteLinkExpiredTime: number | false;
 		}
 		interface CompleteGroupConfig extends PublicGroupConfig, PrivateGroupConfig {
 			autoAcceptJoinRequestWhenPublicGroupMember: boolean;
+			publicGroupAdminBecomePrivateGroupAdminEnable: boolean;
+			publicGroupAdminBecomePrivateGroupAdminCustomTitle: string | false;
 		}
 
 		interface PublicGroupWithIdConfig extends PublicGroupConfig {
@@ -49,10 +57,6 @@ export declare namespace Config {
 			CompleteGroupConfig
 		{}
 	}
-	interface Log {
-		logLevel: logger.LogLevel;
-		logFile?: string;
-	}
 
 	// eslint-disable-next-line @typescript-eslint/no-namespace
 	namespace Input {
@@ -61,10 +65,11 @@ export declare namespace Config {
 			| Partial<GroupConfig.PublicGroupWithIdConfig>
 			| Partial<GroupConfig.CompleteGroupWithIdConfig>;
 
-		interface InputConfig extends Partial<GroupConfig.CompleteGroupConfig>, Partial<Log> {
-			botToken: string;
-			activeGroupMap: InputActiveGroup[];
-		}
+		interface InputConfig extends
+			Base<InputActiveGroup>,
+			Partial<GroupConfig.CompleteGroupConfig>,
+			Partial<Log>
+		{}
 	}
 
 	type ActiveGroup =
@@ -85,10 +90,10 @@ const defaultSettingValue: {
 	notifyJoinRequest: false,
 	notifyJoinRequestMessage: '{mention} [<code>{id}</code>] 已申請加入本群。',
 	notifyJoinRequestWithApproveButton: false,
-	notifyJoinRequestApproveButtonText: '允許',
-	notifyJoinRequestDeclineButtonText: '拒絕',
 	inviteLinkExpiredTime: false,
-	autoAcceptJoinRequestWhenPublicGroupMember: false
+	autoAcceptJoinRequestWhenPublicGroupMember: false,
+	publicGroupAdminBecomePrivateGroupAdminEnable: false,
+	publicGroupAdminBecomePrivateGroupAdminCustomTitle: false
 };
 const settingKeys = Reflect.ownKeys(defaultSettingValue) as SettingKey[];
 
@@ -130,6 +135,7 @@ function transInputConfig(input: Config.Input.InputConfig): Config {
 	const result: Config = {
 		botToken: input.botToken,
 		activeGroupMap: [],
+		enableSuExitMode: !!input.enableSuExitMode,
 		publicGroupToActiveGroupMap: new Map(),
 		privateGroupToActiveGroupMap: new Map(),
 		logLevel: input.logLevel && logger.logLevels.includes(input.logLevel) ? input.logLevel : 'info'
