@@ -1,11 +1,17 @@
+// 將這個檔案複製成 config.json5
+// 並修改依照你的需求更改配置
+// P.S. 如果你比較喜歡用 JSON 格式
+//      也可以使用 JSON 格式的 config.json
 {
-	"botToken": "1234567890:abcdef",
-	"activeGroupMap": [
+	"botToken": "1234567890:abcdef", // 機器人 TOKEN
+	"activeGroupMap": [  // 機器人 TOKEN
 		{
 			"publicGroup": -123456,
 			"privateGroup": -123456
 		}
 	],
-	"logLevel": "debug",
+	// 紀錄等級，有 debug、info、warn、error 幾種等級，推薦使用 info
+	"logLevel": "info",
+	// 紀錄檔檔名，如留空則只向螢幕輸出
 	"logFile": "app.log"
 }
