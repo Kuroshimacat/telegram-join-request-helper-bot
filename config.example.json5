@@ -3,15 +3,91 @@
 // P.S. 如果你比較喜歡用 JSON 格式
 //      也可以使用 JSON 格式的 config.json
 {
-	"botToken": "1234567890:abcdef", // 機器人 TOKEN
-	"activeGroupMap": [  // 機器人 TOKEN
+	// 機器人 TOKEN
+	botToken: '1234567890:abcdef',
+	
+	// #region group setting
+	// 群組設定
+	// 下方所有訊息類的注意事項：
+	// 1. 使用 string-format 模組 https://www.npmjs.com/package/string-format
+	// 2. 使用 parse_mode=html 送出，請注意 `<`(`&lt;`)、`>`(`&gt;`)、`&`(`&amp;`) 三個符號的轉譯。
+	// 3. 變數組：
+	//   - 通用
+	//   -* timestamp: 當前時間戳（請參考 Date.prototype.toISOString）
+	//   - 用戶相關（未提及則所有變數的前綴都是 `u_`）
+	//   -* id: 新用戶的 id
+	//   -* first_name: 新用戶的 first name
+	//   -* last_name: 新用戶的 last name，若無則為 'null'
+	//   -* language_code: 新用戶的介面語言，若為英文或是無法獲取則為 'null'
+	//   -* fullname: 新用戶的姓名（first name + last name）
+	//   -* username: 新用戶的 usename，若無則為 'null'
+	//   -* mention: 提及新用戶
+	//   - 群組相關（未提及則所有變數的前綴都是 `c_`）
+	//   -* id: 群組的 id
+	//   -* title: 群組的標題
+	//   -* username: 群組的 usename，若無則為 'null'
+	
+	// 新用戶進入公開群組時是否發送歡迎訊息
+	welcomeOnJoinPublicGroup: true,
+	// 新用戶進入公開群組時發送的歡迎訊息
+	// 可用變數：
+	// - 通用變數組
+	// - 入群用戶（參見用戶相關數組）
+	// - 當前群組（參見群組相關變數組）
+	// - invite_link: 進入私群的邀請連結（如果存在的話）
+	welcomeOnJoinPublicGroupMessage: '歡迎 {u_mention} 在 {timestamp} 加入 {c_title}！您可以透過連結 {invite_link} 申請加入我們的內部討論群。',
+
+	// 新用戶進入私有群組時是否發送歡迎訊息
+	welcomeOnJoinPrivateGroup: true,
+	// 新用戶進入私有群組時發送的歡迎訊息
+	// 可用變數組
+	// - 通用變數組
+	// - 入群用戶（參見用戶相關數組）
+	// - 當前群組（參見群組相關變數組）
+	welcomeOnJoinPrivateGroupMessage: '歡迎 {u_mention} 在 {timestamp} 加入 {c_title}！',
+
+	// 新用戶申請進入私有群組時是否需要通知
+	notifyJoinRequest: true,
+	// 新用戶申請進入私有群組時發送的通知訊息
+	// 可用變數組
+	// - 通用變數組
+	// - 申請用戶（參見用戶相關數組）
+	notifyJoinRequestMessage: '{u_mention} 在 {timestamp} 申請加入本群。',
+	// 新用戶申請進入私有群組時發送的通知訊息是否應該包含核准連結？
+	notifyJoinRequestWithApproveButton: true,
+	
+	// 生成的邀請連結的過期秒數，false 表永不過期，如果無特殊原因建議不要更動
+	inviteLinkExpiredTime: false,
+	
+	// 是否自動同意公開群的成員申請加入私有群組的申請
+	// 如果成員有被 restricted，他／她必須要能在公開群組發言。
+	autoAcceptJoinRequestWhenPublicGroupMember: false,
+	// #endregion group setting
+
+	// #region group map
+	// 設定要啟用 bot 的群組
+	activeGroupMap: [
 		{
-			"publicGroup": -123456,
-			"privateGroup": -123456
-		}
+			publicGroup: -100123456789,
+			privateGroup: -100234567891,
+			
+			// 設定 override
+			// 上面列出的所有項目皆可被覆蓋
+			// 舉例：
+			
+			// 新用戶申請進入 -100234567891 時時無須通知
+			notifyJoinRequest: false,
+			
+			// 自動同意 -100123456789 的成員申請加入 -100234567891 的申請
+			autoAcceptJoinRequestWhenPublicGroupMember: true,
+		},
 	],
+	// #endregion group map
+
+	// #region log config
 	// 紀錄等級，有 debug、info、warn、error 幾種等級，推薦使用 info
-	"logLevel": "info",
+	logLevel: "info",
 	// 紀錄檔檔名，如留空則只向螢幕輸出
-	"logFile": "app.log"
+	logFile: 'app.log'
+	// #endregion log config
 }
