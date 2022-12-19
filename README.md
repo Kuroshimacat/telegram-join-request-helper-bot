@@ -53,4 +53,4 @@
 ## 开发者
 
 * [Sunafterrainwm](https://github.com/sunafterrainwm)
-* [Avwwww](https://github.com/owen15571)（owen15571）（Readme编写者）
+* [Avwwww](https://github.com/Kuroshimacat)（Kuroshimacat）（Readme编写者）
