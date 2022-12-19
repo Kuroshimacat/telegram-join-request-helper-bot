@@ -39,7 +39,7 @@
    如要编译为js再执行：
 
    ```bash
-   pnpm run build &&pnpm start 
+   pnpm run build && pnpm start 
    ```
 
    
